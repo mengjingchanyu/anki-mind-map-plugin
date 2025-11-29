@@ -1,0 +1,12 @@
+{
+    "last_mindmap_id": null,
+    "quick_open_shortcut": "Ctrl+M",
+    "background_image": "",
+    "background_overlay": "rgba(245, 245, 220, 0.0)",
+    "line_color": "rgba(139, 92, 246, 0.6)",
+    "hotkeys": {
+        "save": "Ctrl+S",
+        "refresh": "F5",
+        "focus_root": "Ctrl+R"
+    }
+}

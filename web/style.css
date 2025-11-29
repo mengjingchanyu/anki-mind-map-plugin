@@ -1,0 +1,128 @@
+html,
+body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #f5f5dc;
+}
+
+#jsmind_container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+/* Container background - can be overridden by custom background image */
+.jsmind-inner {
+    background: transparent;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+/* Multi-selection highlight with enhanced glow */
+jmnode.selected-multi {
+    outline: 3px solid #60a5fa !important;
+    outline-offset: 3px;
+    box-shadow: 0 0 20px rgba(96, 165, 250, 0.7), 0 0 40px rgba(96, 165, 250, 0.4) !important;
+    animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+
+    0%,
+    100% {
+        box-shadow: 0 0 20px rgba(96, 165, 250, 0.7), 0 0 40px rgba(96, 165, 250, 0.4);
+    }
+
+    50% {
+        box-shadow: 0 0 30px rgba(96, 165, 250, 0.9), 0 0 60px rgba(96, 165, 250, 0.6);
+    }
+}
+
+/* Enhanced card link indicator with gradient */
+jmnode[data-has-card="true"]::after {
+    content: "🔗";
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    font-size: 12px;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 8px rgba(16, 185, 129, 0.4), 0 2px 4px rgba(0, 0, 0, 0.3);
+    pointer-events: none;
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    animation: link-bounce 3s ease-in-out infinite;
+}
+
+@keyframes link-bounce {
+
+    0%,
+    100% {
+        transform: translateY(0) scale(1);
+    }
+
+    50% {
+        transform: translateY(-2px) scale(1.05);
+    }
+}
+
+/* Modern custom scrollbar */
+::-webkit-scrollbar {
+    width: 14px;
+    height: 14px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(30, 41, 59, 0.5);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    border-radius: 10px;
+    border: 2px solid rgba(30, 41, 59, 0.5);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
+}
+
+::-webkit-scrollbar-corner {
+    background: rgba(30, 41, 59, 0.5);
+}
+
+/* Enhanced drag-drop visual feedback */
+jmnode[style*="visibility: visible"] {
+    animation: fadeIn 0.15s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Dragging cursor feedback */
+body.dragging {
+    cursor: grabbing !important;
+}
+
+body.dragging * {
+    cursor: grabbing !important;
+}
