@@ -220,6 +220,10 @@ function setupFloatingNodes() {
 
     // Double-click on empty space to create floating node
     container.addEventListener('dblclick', function (e) {
+        if (jm && !jm.get_editable()) return;
+        if (typeof enableFloatingNodesFromPython !== 'undefined' && !enableFloatingNodesFromPython) {
+            return;
+        }
         // Check if clicked on empty space (not on a node)
         var target = e.target;
         if (target.tagName && target.tagName.toLowerCase() === 'jmnode') {
@@ -340,6 +344,7 @@ function setupFloatingNodeDrag(floatingNode) {
     var originalTransition = '';
 
     element.addEventListener('mousedown', function (e) {
+        if (jm && !jm.get_editable()) return;
         if (e.target !== element && e.target.parentElement !== element) return;
         if (isEditing) return; // Don't drag while editing
 
@@ -539,6 +544,7 @@ function setupFloatingNodeEdit(floatingNode) {
 
     // Click to select
     element.addEventListener('click', function (e) {
+        if (jm && !jm.get_editable()) return;
         selectFloatingNode(floatingNode);
         e.preventDefault();
         e.stopPropagation();
@@ -546,6 +552,7 @@ function setupFloatingNodeEdit(floatingNode) {
 
     // Double-click to edit
     element.addEventListener('dblclick', function (e) {
+        if (jm && !jm.get_editable()) return;
         enterFloatingNodeEditMode(floatingNode);
         e.preventDefault();
         e.stopPropagation();
@@ -554,6 +561,7 @@ function setupFloatingNodeEdit(floatingNode) {
     // Keyboard events
     element.addEventListener('keydown', function (e) {
         if (isEditing) return;
+        if (jm && !jm.get_editable()) return;
 
         console.log('Key pressed on floating node:', e.key, 'Node:', floatingNode.id);
 
@@ -1591,6 +1599,7 @@ document.addEventListener('keydown', function (e) {
 
     // Handle floating node deletion
     if ((e.key === 'Delete' || e.key === 'Backspace') && selectedFloatingNode) {
+        if (jm && !jm.get_editable()) return;
         e.preventDefault();
         console.log('Global delete handler - deleting floating node:', selectedFloatingNode.id);
         removeFloatingNode(selectedFloatingNode);
@@ -1653,12 +1662,14 @@ document.addEventListener('keydown', function (e) {
     }
 
     if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        if (jm && !jm.get_editable()) return;
         e.preventDefault();
         undo();
         return;
     }
 
     if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+        if (jm && !jm.get_editable()) return;
         e.preventDefault();
         redo();
         return;
@@ -1673,6 +1684,10 @@ document.addEventListener('keydown', function (e) {
     if (!jm) return;
     var selected = jm.get_selected_node();
     if (!selected) return;
+
+    if (!jm.get_editable() && (e.key === ' ' || e.key === 'Enter' || e.key === 'Tab' || e.key === 'Delete' || e.key === 'Backspace')) {
+        return;
+    }
 
     // Space key: Enter edit mode
     if (e.key === ' ' && !isEditing) {
@@ -2137,6 +2152,7 @@ function focusNode(nodeId) {
 
 document.addEventListener('paste', function (e) {
     if (isEditing) return;
+    if (jm && !jm.get_editable()) return;
 
     var selected = jm.get_selected_node();
     if (selected) {
@@ -2184,3 +2200,13 @@ document.addEventListener('copy', function (e) {
         }
     }
 });
+
+function toggleReadOnly() {
+    if (!jm) return;
+    var checkbox = document.getElementById('readonly_toggle');
+    if (checkbox.checked) {
+        jm.disable_edit();
+    } else {
+        jm.enable_edit();
+    }
+}

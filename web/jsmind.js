@@ -2660,9 +2660,22 @@
             for (var i = 0; i < this.e_panel.children.length; i++) {
                 this.e_panel.children[i].style.zoom = zoom;
             };
-            this.show(true);
-            return true;
 
+            this.show(false);
+
+            var selected_node = this.jm.get_selected_node();
+            if (!!selected_node) {
+                var view_data = selected_node._data.view;
+                var node_center_x = view_data.abs_x + view_data.width / 2;
+                var node_center_y = view_data.abs_y + view_data.height / 2;
+
+                var client_w = this.e_panel.clientWidth;
+                var client_h = this.e_panel.clientHeight;
+
+                this.e_panel.scrollLeft = node_center_x * this.actualZoom - client_w / 2;
+                this.e_panel.scrollTop = node_center_y * this.actualZoom - client_h / 2;
+            }
+            return true;
         },
 
         _center_root: function () {

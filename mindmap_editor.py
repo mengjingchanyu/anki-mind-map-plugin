@@ -4,6 +4,8 @@ import base64
 from aqt import mw
 from aqt.qt import *
 from aqt.webview import AnkiWebView
+from aqt.qt import QDialog, QVBoxLayout
+from aqt.utils import showInfo
 from .note_manager import get_or_create_mindmap_model
 
 class MindMapDialog(QDialog):
@@ -121,8 +123,82 @@ class MindMapDialog(QDialog):
                 {jsmind_css}
                 {style_css}
                 {bg_style}
+
+                .toolbar {{
+                    position: fixed;
+                    top: 5px;    
+                    left: 5px;     
+                    z-index: 2000;
+                    padding: 0;
+                    margin: 0;
+                    background: transparent;
+                    box-shadow: none;    
+                    width: auto;
+                    height: auto;
+                }}
+
+                .toolbar button {{
+                    background: transparent !important; 
+                    color: #aaa;   
+                    border: none;
+                    padding: 2px 4px; 
+                    border-radius: 3px;
+                    cursor: pointer;
+                    font-weight: normal;
+                    font-size: 14px; 
+                    line-height: 1;
+                    transition: all 0.2s;
+                    opacity: 0.4;   
+                    box-shadow: none;
+                }}
                 
-                /* Reset body margins for fullscreen */
+                .toolbar button:hover {{
+                    color: #333;    
+                    opacity: 1;
+                    background: rgba(0,0,0,0.05) !important; 
+                }}
+
+                .menu-container {{
+                    position: relative;
+                    display: inline-block;
+                }}
+                .menu-content {{
+                    display: none;
+                    position: absolute;
+                    top: 100%;
+                    left: 0;
+                    background-color: white;
+                    min-width: 160px;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                    border-radius: 4px;
+                    padding: 5px 0;
+                    z-index: 2001;
+                    border: 1px solid #eee;
+                    margin-top: 5px;
+                }}
+                .menu-content.show {{
+                    display: block;
+                }}
+                .menu-item {{
+                    padding: 8px 12px;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    font-size: 13px;
+                    color: #333;
+                }}
+                .menu-item:hover {{
+                    background-color: #f5f5f5;
+                }}
+                .menu-item input {{
+                    margin-right: 8px;
+                }}
+                .menu-divider {{
+                    height: 1px;
+                    background-color: #eee;
+                    margin: 4px 0;
+                }}
+                
                 html, body {{
                     margin: 0;
                     padding: 0;
@@ -131,60 +207,23 @@ class MindMapDialog(QDialog):
                     overflow: hidden;
                 }}
                 
-                /* Fullscreen container styles */
                 #jsmind_container {{
                     position: absolute;
-                    top: 0;
+                    top: 0 !important;
                     left: 0;
                     right: 0;
                     bottom: 0;
+                    height: 100% !important;
                     margin: 0;
                     padding: 0;
                 }}
                 
-                /* Ensure fullscreen fills entire screen */
-                :fullscreen,
-                :-webkit-full-screen,
-                :-moz-full-screen,
-                :-ms-fullscreen {{
-                    width: 100%;
-                    height: 100%;
-                    margin: 0;
-                    padding: 0;
+                :fullscreen #jsmind_container {{
+                    top: 0 !important;
+                    height: 100% !important;
                 }}
                 
-                :fullscreen #jsmind_container,
-                :-webkit-full-screen #jsmind_container,
-                :-moz-full-screen #jsmind_container,
-                :-ms-fullscreen #jsmind_container {{
-                    width: 100vw;
-                    height: 100vh;
-                }}
-                
-                .toolbar {{
-                    position: fixed;
-                    top: 10px;
-                    left: 10px;
-                    z-index: 1000;
-                    background: white;
-                    padding: 8px;
-                    border-radius: 4px;
-                    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-                }}
-                .toolbar button {{
-                    padding: 8px 12px;
-                    margin-right: 5px;
-                    background: #28a745;
-                    color: white;
-                    border: none;
-                    border-radius: 4px;
-                    cursor: pointer;
-                    font-weight: bold;
-                }}
-                .toolbar button:hover {{
-                    background: #218838;
-                }}
-                                #auto-save-status {{
+                #auto-save-status {{
                     position: fixed;
                     top: 55px;
                     right: 10px;
@@ -197,6 +236,7 @@ class MindMapDialog(QDialog):
                     transition: opacity 0.3s;
                     z-index: 1000;
                 }}
+                
                 /* Floating nodes styles */
                 jmnode[nodeid^="floating_"] {{
                     transition: border-color 0.2s, box-shadow 0.2s;
@@ -213,7 +253,6 @@ class MindMapDialog(QDialog):
                     50% {{ transform: scale(1.05); }}
                 }}
                 </style>
-                <!-- MathJax from CDN with configuration -->
                 <script>
                 window.MathJax = {{
                     tex: {{
@@ -235,15 +274,38 @@ class MindMapDialog(QDialog):
             </head>
             <body>
                 <div class="toolbar">
-                    <button onclick="toggleFullscreen()" id="fullscreen-btn" title="Toggle Fullscreen" style="background: #6c757d; padding: 4px 8px; font-size: 12px;">⛶</button>
+                    <div class="menu-container">
+                        <button onclick="toggleMenu()" title="Menu">☰</button>
+                        
+                        <div id="main-menu" class="menu-content">
+                            <div style="padding: 5px 12px; font-weight:bold; color:#666; font-size:11px;">LINK ACTION</div>
+
+                            <label class="menu-item" onclick="toggleReadOnly()">
+                                <input type="checkbox" id="readonly_toggle"> Read-Only Mode
+                            </label>
+                            <div class="menu-divider"></div>
+                            
+                            <label class="menu-item" onclick="setJumpMode('preview')">
+                                <input type="radio" name="jump_mode" id="mode_preview" checked> Preview Card
+                            </label>
+                            
+                            <label class="menu-item" onclick="setJumpMode('browser')">
+                                <input type="radio" name="jump_mode" id="mode_browser"> Card Browser
+                            </label>
+                            
+                            <div class="menu-divider"></div>
+                            
+                            <div class="menu-item" onclick="toggleFullscreen()">
+                                ⛶ Toggle Fullscreen
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 
-                                                <div id="jsmind_container" tabindex="0" style="background: #f4f4f4; outline: none; overflow: auto;">
+                <div id="jsmind_container" tabindex="0" style="background: #f4f4f4; outline: none; overflow: auto;">
                 </div>
                 
                 <div id="auto-save-status">Auto-saved</div>
-                
-
                 
                 <script>
                 {main_js}
@@ -253,6 +315,9 @@ class MindMapDialog(QDialog):
                 // Inject hotkey configuration
                 var hotkeyConfigFromPython = {json.dumps(config.get('hotkeys', {}))};
                 var lineColorFromPython = {json.dumps(config.get('line_color', 'rgba(139, 92, 246, 0.6)'))};
+                var enableFloatingNodesFromPython = {json.dumps(config.get('enable_floating_nodes', True))};
+                var initialJumpMode = {json.dumps(config.get('jump_mode', 'preview'))};
+                
                 if (hotkeyConfigFromPython && Object.keys(hotkeyConfigFromPython).length > 0) {{
                     hotkeyConfig = hotkeyConfigFromPython;
                     console.log("Loaded hotkey config:", hotkeyConfig);
@@ -262,6 +327,36 @@ class MindMapDialog(QDialog):
                 var initialData = {data_json};
                 var initialFocusId = "{self.focus_node_id or ''}";
                 
+                // Menu Logic
+                function toggleMenu() {{
+                    var menu = document.getElementById("main-menu");
+                    if (menu.style.display === "block") {{
+                        menu.style.display = "none";
+                    }} else {{
+                        menu.style.display = "block";
+                    }}
+                }}
+
+                // Close menu when clicking outside
+                document.addEventListener('click', function(event) {{
+                    var container = document.querySelector('.menu-container');
+                    if (!container.contains(event.target)) {{
+                        document.getElementById("main-menu").style.display = "none";
+                    }}
+                }});
+
+                function setJumpMode(mode) {{
+                    // Update UI
+                    document.getElementById('mode_' + mode).checked = true;
+                    // Save to Anki config
+                    pycmd("update_config:jump_mode=" + mode);
+                }}
+
+                // Initialize UI based on config
+                if (typeof initialJumpMode !== 'undefined') {{
+                    document.getElementById('mode_' + initialJumpMode).checked = true;
+                }}
+
                 window.onload = function() {{
                     console.log("Window loaded. Starting init...");
                     if (typeof initEditor === 'function') {{
@@ -280,7 +375,7 @@ class MindMapDialog(QDialog):
                 }};
                 </script>
             </body>
-                        </html>
+            </html>
             """
             
             # Set base URL
@@ -302,6 +397,8 @@ class MindMapDialog(QDialog):
     def _on_bridge_cmd(self, cmd: str) -> None:
         if cmd.startswith("save:"):
             self._handle_save(cmd[5:])
+        elif cmd.startswith("update_config:"):
+            self._handle_update_config(cmd[14:])
         elif cmd == "close":
             self.close()
         elif cmd.startswith("jump_to_card:"):
@@ -312,52 +409,233 @@ class MindMapDialog(QDialog):
             self._handle_toggle_fullscreen()
         else:
             print(f"Unknown command: {cmd}")
+    
+    def _on_preview_bridge_cmd(self, cmd: str) -> None:
+        """Handle commands from the preview window"""
+        if cmd.startswith("save_mode:"):
+            mode = cmd.split(":", 1)[1]
+            config = self.mw.addonManager.getConfig(__name__) or {}
+            config['preview_mode'] = mode
+            self.mw.addonManager.writeConfig(__name__, config)
+
+    def _handle_update_config(self, params: str):
+            """Handle configuration updates from UI"""
+            try:
+                key, value = params.split('=', 1)
+                config = self.mw.addonManager.getConfig(__name__) or {}
+                config[key] = value
+                self.mw.addonManager.writeConfig(__name__, config)
+            except Exception as e:
+                print(f"Error updating config: {e}")
 
     def _handle_jump_to_card(self, note_id_str):
-        try:
-            nid = int(note_id_str)
-            
-            # Validate: Check if card still exists
             try:
-                card_note = self.mw.col.get_note(nid)
-                # Card exists, open browser
-                from aqt import dialogs
-                browser = dialogs.open("Browser", self.mw)
-                browser.search_for(f"nid:{nid}")
-            except:
-                # Card doesn't exist, show error and cleanup
-                from aqt.utils import showInfo
-                showInfo("This card no longer exists. Cleaning up link...")
-                
-                # Find and remove noteId from the node
-                import json
-                data_str = self.note['Data']
-                data = json.loads(data_str)
-                
-                modified = False
-                def remove_noteid_from_node(node):
-                    nonlocal modified
-                    if isinstance(node, dict):
-                        if node.get('noteId') == nid:
-                            del node['noteId']
-                            modified = True
-                            print(f"Removed noteId {nid} from node {node.get('id')}")
-                        if 'children' in node:
-                            for child in node['children']:
-                                remove_noteid_from_node(child)
-                
-                if 'data' in data:
-                    remove_noteid_from_node(data['data'])
-                
-                if modified:
-                    self.note['Data'] = json.dumps(data)
-                    self.mw.col.update_note(self.note)
-                    # Refresh the display to remove marker
-                    self.web.eval("if(typeof markLinkedNodes === 'function') markLinkedNodes();")
-                
-        except ValueError:
-            print(f"Invalid note ID for jump: {note_id_str}")
+                nid = int(note_id_str)
+                config = self.mw.addonManager.getConfig(__name__) or {}
+                mode = config.get('jump_mode', 'preview')
 
+                if mode == 'browser':
+                    from aqt import dialogs
+                    browser = dialogs.open("Browser", self.mw)
+                    browser.search_for(f"nid:{nid}")
+                else:
+                    self._open_card_preview(nid)
+                    
+            except ValueError:
+                print(f"Invalid note ID: {note_id_str}")
+            except Exception as e:
+                from aqt.utils import showInfo
+                showInfo(f"Error jumping to card: {e}")
+
+
+    def _open_card_preview(self, nid):
+        """Open single instance card preview window (Fixed: Safe JSON injection)"""
+        try:
+            # 1. Get note content
+            try:
+                note = self.mw.col.get_note(nid)
+            except Exception:
+                from aqt.utils import showInfo
+                showInfo(f"Note {nid} not found.")
+                return
+
+            cards = note.cards()
+            if not cards:
+                return
+            card = cards[0]
+            
+            # 2. Render content (Front and Back)
+            try:
+                content = card.render_output()
+                q_text = content.q
+                a_text = content.a
+            except (AttributeError, Exception):
+                q_text = card.q()
+                a_text = card.a()
+            
+            # Serialize content to JSON and ESCAPE closing tags
+            # This prevents </script> in card content from breaking the viewer
+            import json
+            q_json = json.dumps(q_text).replace("</", "<\\/")
+            a_json = json.dumps(a_text).replace("</", "<\\/")
+            
+            # Get saved preference
+            config = self.mw.addonManager.getConfig(__name__) or {}
+            current_mode = config.get('preview_mode', 'all')
+
+            # 3. Define HTML Template (Standard string, NO f-string to avoid conflicts)
+            html_template = """
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <style>
+                    body { 
+                        margin: 0; 
+                        padding: 0; 
+                        display: flex; 
+                        flex-direction: column; 
+                        height: 100vh; 
+                        font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+                        background: white;
+                    }
+                    .controls {
+                        background: #f8f9fa; 
+                        border-bottom: 1px solid #e9ecef; 
+                        padding: 10px;
+                        display: flex; 
+                        justify-content: center; 
+                        gap: 10px; 
+                        flex-shrink: 0;
+                        user-select: none;
+                    }
+                    .btn {
+                        padding: 6px 16px; 
+                        border: 1px solid #ced4da; 
+                        background: white;
+                        border-radius: 20px; 
+                        cursor: pointer; 
+                        font-size: 13px;
+                        font-weight: 500;
+                        color: #495057;
+                        transition: all 0.2s ease;
+                    }
+                    .btn:hover { background: #e9ecef; }
+                    .btn.active { 
+                        background: #007bff; 
+                        color: white; 
+                        border-color: #007bff; 
+                        box-shadow: 0 2px 4px rgba(0,123,255,0.2);
+                    }
+                    #content {
+                        flex-grow: 1; 
+                        padding: 20px; 
+                        overflow-y: auto; 
+                        display: flex; 
+                        flex-direction: column; 
+                        align-items: center;
+                    }
+                    .card { 
+                        font-size: 18px; 
+                        line-height: 1.5; 
+                        max-width: 800px; 
+                        width: 100%; 
+                        text-align: center; 
+                        color: #212529;
+                    }
+                    hr { margin: 20px 0; border: 0; border-top: 1px solid #dee2e6; width: 100%; }
+                    img { max-width: 100%; height: auto; border-radius: 4px; }
+                    
+                    /* Custom Scrollbar */
+                    ::-webkit-scrollbar { width: 8px; }
+                    ::-webkit-scrollbar-track { background: transparent; }
+                    ::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 4px; }
+                    ::-webkit-scrollbar-thumb:hover { background: #a0aec0; }
+                </style>
+                <script>
+                    var frontContent = VAR_FRONT_CONTENT;
+                    var allContent = VAR_ALL_CONTENT;
+                    var currentMode = "VAR_CURRENT_MODE";
+
+                    function setMode(mode) {
+                        currentMode = mode;
+                        var contentDiv = document.getElementById('content');
+                        var btnFront = document.getElementById('btn-front');
+                        var btnAll = document.getElementById('btn-all');
+
+                        if (mode === 'front') {
+                            contentDiv.innerHTML = "<div class='card'>" + frontContent + "</div>";
+                            btnFront.classList.add('active');
+                            btnAll.classList.remove('active');
+                        } else {
+                            contentDiv.innerHTML = "<div class='card'>" + allContent + "</div>";
+                            btnFront.classList.remove('active');
+                            btnAll.classList.add('active');
+                        }
+                        // Save config back to Python
+                        pycmd("save_mode:" + mode);
+                    }
+
+                    window.onload = function() {
+                        setMode(currentMode);
+                    };
+                </script>
+            </head>
+            <body>
+                <div class="controls">
+                    <button id="btn-front" class="btn" onclick="setMode('front')">Front Only</button>
+                    <button id="btn-all" class="btn" onclick="setMode('all')">All Content</button>
+                </div>
+                <div id="content"></div>
+            </body>
+            </html>
+            """
+            
+            # 4. Inject Data safely
+            html = html_template.replace("VAR_FRONT_CONTENT", q_json)
+            html = html.replace("VAR_ALL_CONTENT", a_json)
+            html = html.replace("VAR_CURRENT_MODE", current_mode)
+
+            # 5. Window Management (Independent Window)
+            dialog = getattr(self, '_preview_dialog', None)
+            
+            try:
+                if dialog:
+                    dialog.isVisible() 
+            except RuntimeError:
+                dialog = None
+
+            if not dialog:
+                dialog = QDialog(None) # None parent for independent window
+                dialog.setWindowFlags(Qt.WindowType.Window)
+                dialog.setWindowTitle("Card Preview")
+                dialog.setMinimumSize(450, 600)
+                
+                layout = QVBoxLayout(dialog)
+                layout.setContentsMargins(0,0,0,0)
+                
+                from aqt.webview import AnkiWebView
+                dialog._web = AnkiWebView(parent=dialog)
+                dialog._web.set_bridge_command(self._on_preview_bridge_cmd, dialog)
+                layout.addWidget(dialog._web)
+                
+                self.finished.connect(dialog.close)
+                self._preview_dialog = dialog
+            
+            # 6. Update and Show
+            title = note['Title'] if 'Title' in note else 'Card Preview'
+            dialog.setWindowTitle(title)
+            dialog._web.setHtml(html)
+            
+            if not dialog.isVisible():
+                dialog.show()
+            
+            dialog.raise_()
+            dialog.activateWindow()
+            
+        except Exception as e:
+            from aqt.utils import showInfo
+            showInfo(f"Preview error: {e}")                        
 
     def _handle_toggle_fullscreen(self):
         """Toggle fullscreen mode"""

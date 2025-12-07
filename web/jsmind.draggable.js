@@ -172,15 +172,12 @@
             var shadow_center_x = sx + sw / 2;
             var shadow_center_y = sy + sh / 2;
 
-            var ns, nl;
-
             var direct = shadow_center_x >= root_x ?
                 jsMind.direction.right : jsMind.direction.left;
             var nodes = this.jm.mind.nodes;
             var node = null;
             var layout = this.jm.layout;
             var min_distance = Number.MAX_VALUE;
-            var distance = 0;
             var closest_node = null;
             var closest_p = null;
             var shadow_p = null;
@@ -195,36 +192,33 @@
                     if (!layout.is_visible(node)) {
                         continue;
                     }
-                    ns = node.get_size();
-                    nl = node.get_location();
-
-                    var node_center_x = nl.x + ns.w / 2;
+                    var ns = node.get_size();
+                    var nl = node.get_location();
                     var node_center_y = nl.y + ns.h / 2;
 
-                    var effective_radius = (ns.w + ns.h) / 2 * options.detection_radius_multiplier;
-
                     var dx, dy;
+                    // --- 修改开始：移除原始代码中强制要求拖动到节点外侧的检测 ---
+                    // 原始代码这里有 if (shadow_center_x < nl.x + ns.w) { continue; } 导致无法识别兄弟节点插入
                     if (direct == jsMind.direction.right) {
-                        if (shadow_center_x < nl.x + ns.w) { continue; }
                         dx = shadow_center_x - (nl.x + ns.w);
                         dy = shadow_center_y - node_center_y;
                         np = { x: nl.x + ns.w - options.line_width, y: node_center_y };
                         sp = { x: sx + options.line_width, y: shadow_center_y };
                     } else {
-                        if (shadow_center_x > nl.x) { continue; }
                         dx = nl.x - shadow_center_x;
                         dy = shadow_center_y - node_center_y;
                         np = { x: nl.x + options.line_width, y: node_center_y };
                         sp = { x: sx + sw - options.line_width, y: shadow_center_y };
                     }
+                    // --- 修改结束 ---
 
-                    distance = Math.sqrt(dx * dx + dy * dy);
+                    var distance = Math.sqrt(dx * dx + dy * dy);
 
+                    var effective_radius = (ns.w + ns.h) / 2 * options.detection_radius_multiplier;
                     var weight_factor = 1.0;
                     if (distance < effective_radius) {
                         weight_factor = 0.5;
                     }
-
                     distance = distance * weight_factor;
 
                     if (distance < min_distance) {
@@ -235,10 +229,47 @@
                     }
                 }
             }
+
             var result_node = null;
             if (!!closest_node) {
+                var target_node = closest_node;
+
+                // --- 新增逻辑：根据水平位置决定是“做子节点”还是“做兄弟节点” ---
+                if (!closest_node.isroot) {
+                    var n_loc = closest_node.get_location();
+                    var n_size = closest_node.get_size();
+                    var is_sibling_intent = false;
+                    var indent_threshold = 20; // 缩进阈值，超过这个值才认为是子节点
+
+                    if (direct == jsMind.direction.right) {
+                        // 如果阴影中心没有超过目标节点的右边界，说明用户想对齐做兄弟
+                        if (shadow_center_x < n_loc.x + n_size.w + indent_threshold) {
+                            is_sibling_intent = true;
+                        }
+                    } else {
+                        // 左侧同理
+                        if (shadow_center_x > n_loc.x - indent_threshold) {
+                            is_sibling_intent = true;
+                        }
+                    }
+
+                    if (is_sibling_intent) {
+                        // 目标变为父节点（即当前节点变为兄弟）
+                        target_node = closest_node.parent;
+                        // 重新计算连接线位置指向父节点
+                        var p_loc = target_node.get_location();
+                        var p_size = target_node.get_size();
+                        if (direct == jsMind.direction.right) {
+                            closest_p = { x: p_loc.x + p_size.w - options.line_width, y: p_loc.y + p_size.h / 2 };
+                        } else {
+                            closest_p = { x: p_loc.x + options.line_width, y: p_loc.y + p_size.h / 2 };
+                        }
+                    }
+                }
+                // --- 新增逻辑结束 ---
+
                 result_node = {
-                    node: closest_node,
+                    node: target_node,
                     direction: direct,
                     sp: shadow_p,
                     np: closest_p
@@ -246,7 +277,7 @@
             }
             return result_node;
         },
-
+        
         lookup_close_node: function () {
             var node_data = this._lookup_close_node();
             if (!!node_data) {

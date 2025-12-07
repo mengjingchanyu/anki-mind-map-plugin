@@ -1,9 +1,12 @@
 {
     "last_mindmap_id": null,
     "quick_open_shortcut": "Ctrl+M",
+    "enable_floating_nodes": true,
     "background_image": "",
     "background_overlay": "rgba(245, 245, 220, 0.0)",
     "line_color": "rgba(139, 92, 246, 0.6)",
+    "jump_mode": "preview",
+    "preview_mode": "all",
     "hotkeys": {
         "save": "Ctrl+S",
         "refresh": "F5",
